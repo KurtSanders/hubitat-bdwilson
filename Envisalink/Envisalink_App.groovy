@@ -13,7 +13,7 @@
  *
  *      http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Version: 2.0.3
+ *  Version: 2.0.4
  */
 
 definition(
@@ -52,6 +52,9 @@ def mainPage() {
         section("Hubitat Safety Monitor") {
             input "enableHSM", "bool", title: "Integrate with Hubitat Safety Monitor", defaultValue: true
         }
+        section("Pet Safety ArmAway Override") {
+            input "petSafetySwitch", "capability.switch", title: "Optional: Designate a switch when ON will overide armAway to armStay state.", multiple: false
+        }
         section {
             input "logEnable", "bool", title: "Enable Debug Logging", defaultValue: false
         }
@@ -71,7 +74,7 @@ def zonesPage() {
                 input "zone${i}Name", "text",   title: "Name",              required: false
                 input "zone${i}Num",  "number", title: "Zone Number (1–64)", required: false
                 input "zone${i}Type", "enum",   title: "Type",
-                      options: ["Contact", "Motion", "Smoke", "Water", "CO"], required: false
+                      options: ["Contact", "Motion", "Smoke", "Water", "CO", "Glass"], required: false
             }
         }
     }
@@ -151,6 +154,11 @@ private getOrCreateConnectionDevice() {
     return dev
 }
 
+// Pet Safety Check
+boolean checkPetSafetySwitch() {
+	return (petSafetySwitch?.currentSwitch=='on'?true:false)
+}
+
 // ─── HSM integration ─────────────────────────────────────────────────────────
 
 def hsmHandler(evt) {
@@ -165,9 +173,9 @@ def hsmHandler(evt) {
     def connDev = getOrCreateConnectionDevice()
     switch (evt.value) {
         case "armedHome":
-        case "armedNight": connDev.armStay();  break
-        case "armedAway":  connDev.armAway();  break
-        case "disarmed":   connDev.disarm();   break
+        case "armedNight": connDev.armStay(); break
+        case "armedAway":  connDev.armAway(); break
+        case "disarmed":   connDev.disarm();  break
     }
 }
 

@@ -16,7 +16,7 @@
  *  License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
  *  either express or implied.
  *
- *  Version: 2.0.3
+ *  Version: 2.0.4
  */
 
 metadata {
@@ -28,6 +28,7 @@ metadata {
         command "disconnect"
         command "armAway"
         command "armStay"
+        command "armNight"
         command "armInstant"
         command "disarm"
         command "chime"
@@ -60,6 +61,7 @@ def initialize() {
     state.loginState = "disconnected"
     if (state.zones == null) state.zones = [:]
     state.zoneTimers = [:]
+    state.armSwitches = [:]
     sendEvent(name: "connectionStatus", value: "connecting")
     connect()
 }
@@ -305,12 +307,23 @@ private sendCommand(String cmd) {
 
 def armAway() {
     state.cmdSentAt = now()
-    sendCommand("${settings.securityCode}2")
+    Boolean overrideBool = parent?.checkPetSafetySwitch()
+    if (overrideBool) {
+    	log.info "Envisalink Connection: Pet Safety Switch = 'Active (On)'. The 'armAway' command has been changed to 'armStay' for pet safety."
+	    armStay()
+    }
+    else
+	    sendCommand("${settings.securityCode}2")
 }
 
 def armStay() {
     state.cmdSentAt = now()
     sendCommand("${settings.securityCode}3")
+}
+
+def armNight() {
+    state.cmdSentAt = now()
+    sendCommand("${settings.securityCode}33")
 }
 
 def armInstant() {
@@ -365,9 +378,12 @@ def healthCheck() {
 def addZone(int zoneNum, String zoneName, String zoneType) {
     def dni = "${device.id}_Z${zoneNum}"
     if (getChildDevice(dni)) {
-        ifDebug("Zone ${zoneNum} device already exists (${dni})")
+        ifDebug("Zone ${zoneName} ${zoneType} ${zoneNum} device already exists (${dni})")
         return
     }
+    // Use zoneType 'Contact' for Glass Sensor
+    if (zoneType == 'Glass') zoneType = "Contact"
+    
     def driverName = "Envisalink Zone ${zoneType}"
     try {
         addChildDevice("bdwilson", driverName, dni,
@@ -375,7 +391,7 @@ def addZone(int zoneNum, String zoneName, String zoneType) {
         state.zones["${zoneNum}"] = "closed"
         ifDebug("Created zone device: ${zoneName} (zone ${zoneNum}) dni=${dni}")
     } catch (e) {
-        log.error "Failed to create zone device ${zoneNum} '${zoneName}': ${e}"
+        log.error "Failed to create zone device ${zoneNum} '${zoneName}' '${zoneType}: ${e}"
     }
 }
 

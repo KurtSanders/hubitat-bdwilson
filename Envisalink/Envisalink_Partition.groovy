@@ -10,7 +10,7 @@
  *
  *      http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Version: 2.0.3
+ *  Version: 2.0.4
  */
 
 metadata {
@@ -22,6 +22,7 @@ metadata {
 
         command "armAway"
         command "armStay"
+        command "armNight"
         command "armInstant"
         command "disarm"
         command "chime"
@@ -59,6 +60,7 @@ def partition(String partState, String alpha) {
 
 def armAway()    { parent.armAway() }
 def armStay()    { parent.armStay() }
+def armNight()   { parent.armNight() }
 def armInstant() { parent.armInstant() }
 def disarm()     { parent.disarm() }
 def off()        { parent.disarm() }
