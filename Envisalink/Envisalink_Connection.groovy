@@ -23,6 +23,7 @@ metadata {
     definition(name: "Envisalink Connection", namespace: "bdwilson", author: "bdwilson",
                importUrl: "https://raw.githubusercontent.com/bdwilson/hubitat/master/Envisalink/Envisalink_Connection.groovy") {
         capability "Initialize"
+        capability "ContactSensor"
 
         command "connect"
         command "disconnect"
@@ -37,6 +38,7 @@ metadata {
         command "bypass", [[name: "zones", type: "STRING", description: "Comma-separated zone numbers"]]
 
         attribute "connectionStatus", "String"
+        attribute "alarmState", "String"
     }
 
     preferences {
@@ -174,15 +176,19 @@ private handleKeypadUpdate(String[] parts) {
         return
     }
 
-    def flags = parseFlags(flagInt)
-    def dscCode    = getDscCode(flags)
-    def partState  = getPartitionState(flags, alpha)
+    def flags 		= parseFlags(flagInt)
+    def dscCode    	= getDscCode(flags)
+    def partState  	= getPartitionState(flags, alpha)
 
     ifDebug("Keypad update: partition=${partitionNum} flags=${flagsHex} zone=${userOrZone} alpha='${alpha}' code=${dscCode} state=${partState}")
 
     // Update partition child device
     def partChild = getChildDevice("${device.id}_P1")
     if (partChild) partChild.partition(partState, alpha)
+    
+    // Update alarmState
+	sendEvent(name:'alarmState', value:partState)
+    sendEvent(name:'contact', value:partState.startsWith('arm')?'open':'closed')
 
     // Notify parent app for HSM sync — suppressed briefly after sending a command
     // to avoid the re-arm feedback loop caused by panel state lag after disarm/arm
